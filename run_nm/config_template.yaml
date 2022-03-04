@@ -1,0 +1,105 @@
+
+# input data files
+# ----------------
+
+data_files :
+    'experiment'   : 
+        'filepath' : 'PLACEHOLDER'
+        'record_id_col' : 'rowid'
+
+    'admin_training'   : 
+        'filepath' : 'PLACEHOLDER'
+        'record_id_col' : 'rowid'
+
+    'admin_evaluation' :  
+        'filepath' : 'PLACEHOLDER'
+        'record_id_col' : 'rowid'
+
+
+# variable structure
+# ------------------
+
+variables :
+
+- 'name' : 'first_name'
+  'compare_type' : 'String'
+  'experiment_col' : 'first_name'
+  'admin_training_col' : 'first_name'
+  'admin_evaluation_col' : 'first_name'
+
+- 'name' : 'last_name'
+  'compare_type' : 'String'
+  'experiment_col' : 'last_name'
+  'admin_training_col' : 'last_name'
+  'admin_evaluation_col' : 'last_name'
+
+- 'name' : 'dob'
+  'compare_type' : 'Date'
+  'experiment_col' : 'date_of_birth'
+  'admin_training_col' : 'date_of_birth'
+  'admin_evaluation_col' : 'date_of_birth'
+  'check' : 'Date - %Y-%m-%d'
+
+- 'name' : 'age'
+  'compare_type' : "Numeric"
+  'experiment_col' : 'age_in_2020'
+  'admin_training_col' : 'age_in_2020'
+  'admin_evaluation_col' : 'age_in_2020'
+  
+- 'name' : 'middle_initial'
+  'compare_type' : 'Categorical'
+  'experiment_col' : 'middle_initial'
+  'admin_training_col' : 'middle_initial'
+  'admin_evaluation_col' : 'middle_initial'
+
+- 'name' : 'suffix'
+  'compare_type' : 'Categorical'
+  'experiment_col' : 'lineage'
+  'admin_training_col' : 'lineage'
+  'admin_evaluation_col' : 'lineage'
+
+- 'name' : 'gender'
+  'compare_type' : 'Categorical'
+  'check' : 'M,F'
+  'experiment_col' : 'sex'
+  'admin_training_col' : 'sex'
+  'admin_evaluation_col' : 'sex'
+
+- 'name' : 'race'
+  'compare_type' : 'Categorical'
+  'experiment_col' : 'race'
+  'admin_training_col' : 'race' 
+  'admin_evaluation_col' : 'race'
+
+- 'name' : 'uid_sid'
+  'compare_type' : 'UniqueID'
+  'experiment_col' : ''
+  'admin_training_col' : 'uid_sid'
+  'admin_evaluation_col' : ''
+  
+- 'name' : 'sid'
+  'compare_type' : null
+  'experiment_col' : 'sid'
+  'admin_training_col' : 'sid'
+  'admin_evaluation_col' : 'sid'
+
+- 'name' : 'dataset'
+  'compare_type' : null
+  'experiment_col' : 'dataset'
+  'admin_training_col' : 'dataset'
+  'admin_evaluation_col' : 'dataset'
+
+  
+verbose : 50000
+num_workers : 8
+
+leven_thresh : null
+allow_clusters_w_multiple_unique_ids : False
+
+pct_train : .9
+
+missingness_model : null  
+
+weight_using_selection_model : False
+
+optimize_threshold : True

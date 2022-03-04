@@ -1,0 +1,74 @@
+
+n_admin_rows: [5000, 50000, 200000]
+
+n_namematch_bootstrap_iterations: 1000
+
+plots_to_genearte: 
+
+  deduplication_with_defaults:
+    function: get_main_result_plots
+    dedupe_defaults: True
+    framework: Deduplication
+    nm_lines: point_est_of_first
+    draw_nm_region: False
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+  
+  record_linkage_with_defaults:
+    function: get_main_result_plots
+    dedupe_defaults: True
+    framework: Record Linkage
+    nm_lines: point_est_of_first
+    draw_nm_region: False
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+  
+  deduplication:
+    function: get_main_result_plots
+    dedupe_defaults: False
+    framework: Deduplication
+    nm_lines: point_est_of_first
+    draw_nm_region: False
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+
+  record_linkage:
+    function: get_main_result_plots
+    dedupe_defaults: False
+    framework: Record Linkage
+    nm_lines: point_est_of_first
+    draw_nm_region: False
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+
+  deduplication_with_nm_bs:
+    function: get_main_result_plots
+    dedupe_defaults: False
+    framework: Deduplication
+    nm_lines: point_est_of_first
+    draw_nm_region: True
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+
+  record_linkage_with_nm_bs:
+    function: get_main_result_plots
+    dedupe_defaults: False
+    framework: Record Linkage
+    nm_lines: point_est_of_first
+    draw_nm_region: True
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+
+  sample_size_deduplication:
+    function: get_sample_size_plots
+    framework: Deduplication
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['tpr', 'prc', 'error']
+    drop_record_linkage: True

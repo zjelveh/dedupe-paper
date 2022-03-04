@@ -1,0 +1,21 @@
+
+experiment_n: 1000
+
+sample_size_list: 
+- 5000
+- 50000
+- 200000
+
+share_exact_list:
+- .5
+
+seed: 3
+
+col_with_lineage: middle_name
+
+max_cluster_size: 5 # 99th pctl (ojin)
+skip_reallocation_of_big_em_clusters: False
+n_bins_to_reallocate_to_nem: 2
+n_bins_to_reallocate_to_em: 4
+
+distribution_to_match__sids_by_cl_size: {1: 0.499, 2: 0.4, 3: 0.06, 4: 0.03, 5: 0.011}

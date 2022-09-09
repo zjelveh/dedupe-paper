@@ -1,0 +1,4 @@
+
+min_block_size_before_join: 
+  deduplication: 8
+  record_linkage: 4

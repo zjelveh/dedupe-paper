@@ -150,7 +150,7 @@ def pair_level_tnr(exp, admin):
     return result
 
 
-def eval_predictions(df):
+def eval_predictions(df, ss_train, em_train, ss_eval, em_eval, framework, budget, dedupe_sample_size, model_iter):
 
     exp = df[df.dataset == 'experiment_evaluation'].copy()
     admin = df[df.dataset == 'admin_evaluation'].copy()
@@ -179,8 +179,77 @@ def eval_predictions(df):
     fnr_pair = 1 - tpr_pair
     error_pair = fpr_pair + fnr_pair
     
-    results = pd.DataFrame(
-        [[tpr_any, prc_any, tnr_any, error_any, acc_any, tpr_corr, prc_corr, tpr_pair, prc_pair, tnr_pair, error_pair]], # single row
-        columns=['tpr_any', 'prc_any', 'tnr_any', 'error_any', 'acc_any', 'tpr_corr', 'prc_corr', 'tpr_pair', 'prc_pair', 'tnr_pair', 'error_pair'])
+    results = pd.DataFrame.from_records([{
+        'ss_train': ss_train,
+        'em_train': em_train, 
+        'ss_eval': ss_eval, 
+        'em_eval': em_eval, 
+        'framework': framework, 
+        'budget': budget,
+        'dedupe_sample_size': dedupe_sample_size,
+        'model_iter': model_iter,
+        'tpr_any': tpr_any,
+        'prc_any': prc_any,
+        'tnr_any': tnr_any,
+        'error_any': error_any,
+        'acc_any': acc_any,
+        'tpr_corr': tpr_corr,
+        'prc_corr': prc_corr,
+        'tpr_pair': tpr_pair,
+        'prc_pair': prc_pair,
+        'tnr_pair': tnr_pair,
+        'error_pair': error_pair
+    }]) # will be a single row
+
+    return results
+
+
+def bootstrap_eval_predictions(df, ss_train, em_train, ss_eval, em_eval, framework, budget, dedupe_sample_size, model_iter, bs_iters=1000, starting_seed=333):
+
+    exp = df[df.dataset == 'experiment_evaluation'].copy()
+    admin = df[df.dataset == 'admin_evaluation'].copy()
+
+    # sorting (plus seed below) is necessary to ensure bs samples are the same across algorithms/specifications
+    exp = exp.sort_values('sid')
+
+    # just in case there are NAs
+    exp.cluster_id.fillna(-1, inplace=True)
+    admin.cluster_id.fillna(-2, inplace=True)
+
+    exp['in_admin'] = exp.sid.isin(admin.sid)
+    exp['pred_in_admin'] = exp.cluster_id.isin(admin.cluster_id)
+
+    result_rows = []
+    for bs_iter in np.arange(bs_iters):
+
+        # seed is necessary to ensure bs samples are the same across algorithms/specifications
+        bs_exp = exp.sample(frac=1, replace=True, random_state=(starting_seed+bs_iter))
+
+        tpr_any = bs_exp[bs_exp.in_admin == 1].pred_in_admin.mean()
+        prc_any = bs_exp[bs_exp.pred_in_admin == 1].in_admin.mean()
+        tnr_any = (bs_exp[bs_exp.in_admin == 0].pred_in_admin == 0).mean()
+
+        fpr_any = 1 - tnr_any
+        fnr_any = 1 - tpr_any
+        error_any = fpr_any + fnr_any
+
+        result = {
+            'bs_iter': bs_iter,
+            'tpr_any': tpr_any,
+            'prc_any': prc_any,
+            'tnr_any': tnr_any,
+            'error_any': error_any
+        }
+        result_rows.append(result.copy())
+    
+    results = pd.DataFrame.from_records(result_rows)
+    results['ss_train'] = ss_train
+    results['em_train'] = em_train
+    results['ss_eval'] = ss_eval
+    results['em_eval'] = em_eval
+    results['framework'] = framework
+    results['budget'] = budget
+    results['dedupe_sample_size'] = dedupe_sample_size
+    results['model_iter'] = model_iter
 
     return(results)

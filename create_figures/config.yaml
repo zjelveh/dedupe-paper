@@ -1,74 +1,94 @@
 
-n_admin_rows: [5000, 50000, 200000]
-
-n_namematch_bootstrap_iterations: 1000
+median_metric: 'error_any'
 
 plots_to_genearte: 
 
   deduplication_with_defaults:
     function: get_main_result_plots
+    sample_desc: deduplication_defaults
     dedupe_defaults: True
-    framework: Deduplication
-    nm_lines: point_est_of_first
-    draw_nm_region: False
+    framework: deduplication
+    benchmark_lines: median
+    benchmark_uncertainty_shading: False
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
   
   record_linkage_with_defaults:
     function: get_main_result_plots
+    sample_desc: record_linkage_defaults
     dedupe_defaults: True
-    framework: Record Linkage
-    nm_lines: point_est_of_first
-    draw_nm_region: False
+    framework: record_linkage
+    benchmark_lines: median
+    benchmark_uncertainty_shading: False
     any_or_corr: any
     all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
+
+  deduplication_with_defaults_with_shading:
+    function: get_main_result_plots
+    sample_desc: deduplication_defaults
+    dedupe_defaults: True
+    framework: deduplication
+    benchmark_lines: median
+    benchmark_uncertainty_shading: True
+    any_or_corr: any
+    metrics: ['error', 'prc', 'tpr']
+  
+  record_linkage_with_defaults_with_shading:
+    function: get_main_result_plots
+    sample_desc: record_linkage_defaults
+    dedupe_defaults: True
+    framework: record_linkage
+    benchmark_lines: median
+    benchmark_uncertainty_shading: True
+    any_or_corr: any
+    all_or_nem: all
+    metrics: ['error', 'prc', 'tpr']
   
   deduplication:
     function: get_main_result_plots
+    sample_desc: deduplication_optimized
     dedupe_defaults: False
-    framework: Deduplication
-    nm_lines: point_est_of_first
-    draw_nm_region: False
+    framework: deduplication
+    benchmark_lines: median
+    benchmark_uncertainty_shading: False
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
 
   record_linkage:
     function: get_main_result_plots
+    sample_desc: record_linkage_optimized
     dedupe_defaults: False
-    framework: Record Linkage
-    nm_lines: point_est_of_first
-    draw_nm_region: False
+    framework: record_linkage
+    benchmark_lines: median
+    benchmark_uncertainty_shading: False
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
 
-  deduplication_with_nm_bs:
+  deduplication_with_shading:
     function: get_main_result_plots
+    sample_desc: deduplication_optimized
     dedupe_defaults: False
-    framework: Deduplication
-    nm_lines: point_est_of_first
-    draw_nm_region: True
+    framework: deduplication
+    benchmark_lines: median
+    benchmark_uncertainty_shading: True
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
 
-  record_linkage_with_nm_bs:
+  record_linkage_with_shading:
     function: get_main_result_plots
+    sample_desc: record_linkage_optimized
     dedupe_defaults: False
-    framework: Record Linkage
-    nm_lines: point_est_of_first
-    draw_nm_region: True
+    framework: record_linkage
+    benchmark_lines: median
+    benchmark_uncertainty_shading: True
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
+    metrics: ['error', 'prc', 'tpr']
 
   sample_size_deduplication:
     function: get_sample_size_plots
-    framework: Deduplication
+    sample_desc: deduplication
+    framework: deduplication
     any_or_corr: any
-    all_or_nem: all
-    metrics: ['tpr', 'prc', 'error']
-    drop_record_linkage: True
+    metrics: ['error', 'prc', 'tpr']
+    diff_markers: False

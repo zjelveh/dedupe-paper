@@ -9,15 +9,15 @@ bootstrap_results_file := $(PROJECT_DIR)/get_results_file/output/$(task)/all_boo
 config_file := $(CURRENT_DIR)/config.yaml
 
 output_dir = $(CURRENT_DIR)/output/
-output_file := $(output_dir)/task.log
+output_file := $(output_dir)/significance_results.xlsx
 
-$(output_file): create_figures.py plot_functions.py $(config_file) $(results_file) $(bootstrap_results_file)
+$(output_file): get_significance_results.py $(config_file) $(results_file) $(bootstrap_results_file)
 	mkdir -p $(output_dir)
-	nice -n 10 python create_figures.py \
+	nice -n 10 python get_significance_results.py \
 			--results_file=$(results_file) \
 			--bootstrap_results_file=$(bootstrap_results_file) \
 			--config_file=$(config_file) \
-			--output_dir=$(output_dir)
+			--output_file=$(output_file)
 
 .DEFAULT_GOAL = all
 

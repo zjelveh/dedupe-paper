@@ -6,16 +6,32 @@ import re
 import sys
 import logging
 import yaml
-from datetime import timedelta
 
 sys.path.append('../utils/')
 import eval_utils
+
+
+def hms_to_m(hms):
+
+    try:
+        t = 0
+        for u in hms.split(':'):
+            t = 60 * t + int(u)
+        t = t/60
+    except:
+        # accounts for a very odd issue where for 200k runs, the data-rows elapsed 
+        # time stat is already an int (that we THINK might be seconds?)
+        t = t/60
+
+    return t
+
 
 def main(nm_result_dir, output_file):
 
     spec_list = [d for d in os.listdir(nm_result_dir) if 'spec__' in d]
 
-    result_rows = []
+    result_list = []
+    bs_result_list = []
                                 
     for spec in spec_list:
         
@@ -32,40 +48,31 @@ def main(nm_result_dir, output_file):
         except:
             continue
 
-        both = pd.concat([exp_eval, admin_eval])
+        an_w_cluster_id = pd.concat([exp_eval, admin_eval])
 
-        evals = eval_utils.eval_predictions(both)
+        ###
 
-        results_dict = {
-            'ss_train': sst,
-            'em_train': emt,
-            'ss_eval': sse,
-            'em_eval': eme,
-            'iter': i,
-            'tpr_any': evals.tpr_any.iloc[0],
-            'prc_any': evals.prc_any.iloc[0],
-            'tnr_any': evals.tnr_any.iloc[0],
-            'error_any': evals.error_any.iloc[0],
-            'acc_any': evals.acc_any.iloc[0],
-            'tpr_corr': evals.tpr_corr.iloc[0],
-            'prc_corr': evals.prc_corr.iloc[0],
-            'tpr_pair': evals.tpr_pair.iloc[0],
-            'prc_pair': evals.prc_pair.iloc[0],
-            'tnr_pair': evals.tnr_pair.iloc[0],
-            'error_pair': evals.error_pair.iloc[0]
-        }
+        result_df_row = eval_utils.eval_predictions(
+            an_w_cluster_id, ss_train=sst, em_train=emt, ss_eval=sse, em_eval=eme, framework='', budget=0, dedupe_sample_size=0, model_iter=i)
+        bs_result_df = eval_utils.bootstrap_eval_predictions(
+            an_w_cluster_id, ss_train=sst, em_train=emt, ss_eval=sse, em_eval=eme, framework='', budget=0, dedupe_sample_size=0, model_iter=i)
+
         runtime_results_dict = {
-            k.replace('__main', '_min') : v
+            k.replace('__main', '_min') : hms_to_m(v)
             for task, task_stats in log_yaml['stats'].items() 
             for k, v in task_stats.items() if 'runtime' in k
         }
-        results_dict.update(runtime_results_dict)
-        result_rows.append(results_dict.copy())
+        runtime_results_df_row = pd.DataFrame.from_records([runtime_results_dict])
+        result_df_row = pd.concat([result_df_row, runtime_results_df_row], axis=1)
+        
+        result_list.append(result_df_row.copy())
+        bs_result_list.append(bs_result_df.copy())
 
-    results = pd.DataFrame.from_records(result_rows)[list(result_rows[-1].keys())]
+    results = pd.concat(result_list)
+    bs_results = pd.concat(bs_result_list)
     
     results.to_csv(output_file, index=None)
-        
+    bs_results.to_csv(output_file.replace('result', 'bootstrapped_result'), index=None)
                     
 
 if __name__ == '__main__':

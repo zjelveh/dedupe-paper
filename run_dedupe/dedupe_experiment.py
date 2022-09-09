@@ -13,7 +13,9 @@ from unidecode import unidecode
 
 sys.path.append('../utils/')
 import eval_utils
-from cluster_utils import cluster_edges
+from cluster_utils import cluster_edges, convert_predictions_to_all_names_with_clusterid
+
+from automated_labeling_utils import console_label_with_budget
 
 
 def readData(filename):
@@ -31,10 +33,16 @@ def age_diff(f1, f2):
     return(abs(float(f1) - float(f2)))
 
 
-def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_proportion, iteration, dataset_dir, output_file, output_dir, failed_runs_file):
+def main(sst, emt, budget, the_type, sample_size, iteration, dataset_dir, output_file, output_dir, failed_runs_file):
     
-    em_eval = [50]
-    ss_eval = [5000, 50000, 200000]
+    em_eval = [emt]
+    ss_eval = [sst]
+
+    budget = int(budget)
+    sample_size = int(sample_size)
+
+    if (the_type == 'record_linkage') and (sample_size not in [15000, 150000]):
+        return
 
     var_defs = [
         {'field': 'first_name', 'type': 'String'},
@@ -47,11 +55,8 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
         {'field': 'age_in_2020', 'type': 'Custom', 'comparator': age_diff}
     ]
 
-    budget = int(budget)
-    sample_size = int(sample_size)
-    bp_float = float(blocked_proportion)/100
-
     all_results = []
+    all_bootstrapped_results = []
     try:
         admin_train = readData(os.path.join(dataset_dir, 'admin_training__' + str(sst) + '__' + str(emt) + '.csv'))
         exp_train = readData(os.path.join(dataset_dir, 'experiment_training__' + str(sst) + '__' + str(emt) + '.csv'))
@@ -66,19 +71,22 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
         for sse in ss_eval:
 
             try:
-                admin_eval = readData(os.path.join(dataset_dir, 'admin_evaluation__' + str(sse) + '__' + str(eme) + '.csv'))
-                exp_eval = readData(os.path.join(dataset_dir, 'experiment_evaluation__'  + str(sse) + '__' + str(eme) + '.csv'))
+                admin_eval_path = os.path.join(dataset_dir, 'admin_evaluation__' + str(sse) + '__' + str(eme) + '.csv')
+                admin_eval = readData(admin_eval_path)
+                admin_eval_df = pd.read_csv(admin_eval_path)
+
+                exp_eval_path = os.path.join(dataset_dir, 'experiment_evaluation__'  + str(sse) + '__' + str(eme) + '.csv')
+                exp_eval = readData(exp_eval_path)
+                exp_eval_df = pd.read_csv(exp_eval_path)
             except: 
                 continue
 
             print('the_type:', the_type, 
-                'dataset_version:', dataset_version,
                 'sst:', sst, 
                 'emt:', emt, 
                 'budget:', budget,
                 'iter:', iteration, 
                 'sample_size:', sample_size,
-                'blocked_proportion:', blocked_proportion,
                 'eme:', eme, 
                 'sse:', sse)
                             
@@ -91,10 +99,10 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
 
                     if the_type=='record_linkage':
                         deduper = dedupe.RecordLink(variable_definition=var_defs, num_cores=8)
-                        deduper.prepare_training(admin_train, exp_train, sample_size=sample_size, blocked_proportion=bp_float)
+                        deduper.prepare_training(admin_train, exp_train, sample_size=sample_size)
                     else:
                         deduper = dedupe.Dedupe(variable_definition=var_defs, num_cores=8)
-                        deduper.prepare_training(admin_train, sample_size=sample_size, blocked_proportion=bp_float)
+                        deduper.prepare_training(admin_train, sample_size=sample_size)
 
                     end_prepare_train = time.time()
 
@@ -107,14 +115,13 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
 
                     realized_blocked_proportion = deduper.active_learner.realized_blocked_proportion
 
-                    label_info_path = output_dir + '/label_info__' + dataset_version + '__sst_' + str(sst) + '__emt_' + str(emt) + '__budget_' + str(budget) + \
-                            '__sample_size_' + str(sample_size) + '__block_prop_' + blocked_proportion + '__type_' + the_type + '__iter_' + str(iteration) + '.csv'
+                    label_info_path = output_dir + '/label_info__sst_' + str(sst) + '__emt_' + str(emt) + '__budget_' + str(budget) + \
+                            '__sample_size_' + str(sample_size) + '__type_' + the_type + '__iter_' + str(iteration) + '.csv'
                 
                     start_label = time.time()
                     # function we wrote to skip manual labeling and automatically supply the ground truth label
-                    label_info = dedupe.console_label_with_budget(deduper, budget=budget) 
+                    label_info = console_label_with_budget(deduper, budget=budget) 
                     end_label = time.time()
-                    print('finished labeling')
                 
                     start_train = time.time()
                     deduper.train(recall=.99)
@@ -137,10 +144,10 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
 
                 print("clustered_dupes exists")
 
-                links_filepath = output_dir + '/links__' + dataset_version + '__sst_' + str(sst) + '__emt_' + str(emt) + '__budget_' + str(budget) + \
-                        '__sample_size_' + str(sample_size) + '__block_prop_' + blocked_proportion + '__type_' + the_type + '__iter_' + str(iteration) + '__sse_' + str(sse) + '__eme_' + str(eme) + '.csv'
+                filepath_details = f"sst_{sst}__emt_{emt}__budget_{budget}__sample_size_{sample_size}__type_{the_type}__iter_{iteration}__sse_{sse}__eme_{eme}.csv"
                 
-                if the_type=='dedupe':
+                if the_type=='deduplication':
+                    filepath = f"{output_dir}/predicted_clusters__{filepath_details}"
                     cluster_membership = {}
                     for cluster_id, (records, scores) in enumerate(clustered_dupes):
                         for record_id, score in zip(records, scores):
@@ -150,76 +157,59 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
                                 "confidence_score": score
                             }
 
-                    predictions = pd.DataFrame.from_dict(cluster_membership, orient='index')
+                    predicted_clusters = pd.DataFrame.from_dict(cluster_membership, orient='index')
                     end_predict = time.time()
-                    predictions.to_csv(links_filepath, index=None)
+                    predicted_clusters.to_csv(filepath, index=None)
+
+                    an_w_cluster_id = convert_predictions_to_all_names_with_clusterid(exp_eval_df, admin_eval_df, predicted_clusters=predicted_clusters)
 
                 else:
+                    filepath = f"{output_dir}/predicted_matches__{filepath_details}"
+                    predicted_matches = pd.DataFrame.from_records(clustered_dupes)
+                    predicted_matches.columns = ['pair', 'confidence_score']
+                    predicted_matches['rowid1'] = predicted_matches.pair.apply(lambda x: x[0])
+                    predicted_matches['rowid2'] = predicted_matches.pair.apply(lambda x: x[1])
+                    predicted_matches = predicted_matches.drop(columns={'pair'})
 
-                    links = pd.DataFrame.from_records(clustered_dupes)
-                    links.columns = ['pair', 'confidence_score']
-                    links['rowid1'] = links.pair.apply(lambda x: x[0])
-                    links['rowid2'] = links.pair.apply(lambda x: x[1])
-                    links = links.drop(columns={'pair'})
-
-                    cluster_membership = cluster_edges(clustered_dupes)
-
-                    predictions = pd.DataFrame.from_dict(cluster_membership, orient='index')
-                    predictions = predictions.reset_index()
-                    predictions.columns = ['rowid', 'cluster_id']
                     end_predict = time.time()
-                    links.to_csv(links_filepath, index=None)
-
-                print("getting training pairs")
+                    predicted_matches.to_csv(filepath, index=None)
                 
+                    an_w_cluster_id = convert_predictions_to_all_names_with_clusterid(exp_eval_df, admin_eval_df, predicted_matches=predicted_matches)
+
+                print("getting training pair stats")
                 n_distinct = len(deduper.training_pairs['distinct'])
                 n_match = len(deduper.training_pairs['match'])
 
-                print("writing output")
+                print("evaluating")
+                results_df_row = eval_utils.eval_predictions(
+                    an_w_cluster_id, ss_train=sst, em_train=emt, ss_eval=sse, em_eval=eme, framework=the_type, 
+                    budget=budget, dedupe_sample_size=sample_size, model_iter=iteration)
 
-                ae = pd.read_csv(os.path.join(dataset_dir, 'admin_evaluation__' + str(sse) + '__' + str(eme) + '.csv'))
-                exp = pd.read_csv(os.path.join(dataset_dir, 'experiment_evaluation__' + str(sse) + '__' + str(eme) + '.csv'))
-                both = pd.concat([ae, exp], axis=0)
-                both = both.merge(predictions, on='rowid', how='left')
-                both.loc[(both.dataset == 'admin_evaluation') & (both.cluster_id.isna()), 'cluster_id'] = -2
-                both.loc[(both.dataset == 'experiment_evaluation') & (both.cluster_id.isna()), 'cluster_id'] = -1
-                both['cluster_id'] = both.cluster_id.astype(int)
-
-                match_file = output_dir + '/cw__' + dataset_version + '__sst_' + str(sst) + '__emt_' + str(emt) + '__budget_' + str(budget) + \
-                        '__sample_size_' + str(sample_size) + '__block_prop_' + blocked_proportion + '__type_' + the_type + '__iter_' + str(iteration) + '__sse_' + str(sse) + '__eme_' + str(eme) + '.csv'
-                both_to_write = both[['rowid', 'cluster_id', 'sid', 'dataset']].copy()
-                both_to_write.to_csv(match_file, index=None)
+                results_df_row['cp_1s'] = n_cp_1s
+                results_df_row['cp_1s__nem'] = n_cp_1s__nem
+                results_df_row['labeled_0s'] = n_distinct
+                results_df_row['labeled_1s'] = n_match
+                results_df_row['labeled_base_rate'] = n_match / (n_match + n_distinct)
+                results_df_row['realized_blocked_proportion'] = realized_blocked_proportion
+                results_df_row['runtime_min__prepare_train'] = (end_prepare_train - start_prepare_train)/60
+                results_df_row['runtime_min__label'] = (end_label - start_label)/60
+                results_df_row['runtime_min__train'] = (end_train - start_train)/60
+                results_df_row['runtime_min__predict'] = (end_predict - start_predict)/60
+                all_results.append(results_df_row)
                 
-                evals = eval_utils.eval_predictions(both)
-                evals['dataset_version'] = dataset_version
-                evals['em_train'] = emt
-                evals['em_eval'] = eme
-                evals['ss_train'] = sst
-                evals['ss_eval'] = sse
-                evals['type'] = the_type
-                evals['budget'] = budget
-                evals['iter'] = iteration
-                evals['sample_size'] = sample_size
-                evals['blocked_proportion'] = blocked_proportion
-                evals['cp_1s'] = n_cp_1s
-                evals['cp_1s__nem'] = n_cp_1s__nem
-                evals['labeled_0s'] = n_distinct
-                evals['labeled_1s'] = n_match
-                evals['labeled_base_rate'] = n_match / (n_match + n_distinct)
-                evals['realized_blocked_proportion'] = realized_blocked_proportion
-                evals['runtime_min__prepare_train'] = (end_prepare_train - start_prepare_train)/60
-                evals['runtime_min__label'] = (end_label - start_label)/60
-                evals['runtime_min__train'] = (end_train - start_train)/60
-                evals['runtime_min__predict'] = (end_predict - start_predict)/60
-                all_results.append(evals)
+                print("bootstrap evaluating")
+                bs_result_df = eval_utils.bootstrap_eval_predictions(
+                    an_w_cluster_id, ss_train=sst, em_train=emt, ss_eval=sse, em_eval=eme, framework=the_type, 
+                    budget=budget, dedupe_sample_size=sample_size, model_iter=iteration)
+                all_bootstrapped_results.append(bs_result_df.copy())
 
             except:
 
                 print("Unexpected error:", sys.exc_info()[0])
                 
                 new_failed_run = pd.DataFrame([[
-                    the_type, dataset_version, sst, emt, budget, iteration, eme, sse, sample_size, blocked_proportion]], 
-                    columns=['the_type', 'dataset_version', 'sst', 'emt', 'budget', 'iter', 'eme', 'sse', 'sample_size', 'blocked_proportion'])
+                    the_type, sst, emt, budget, iteration, eme, sse, sample_size]], 
+                    columns=['the_type', 'sst', 'emt', 'budget', 'iter', 'eme', 'sse', 'sample_size'])
                 if os.path.exists(failed_runs_file):
                     failed_runs = pd.read_csv(failed_runs_file)
                     failed_runs = pd.concat([failed_runs, new_failed_run], axis=0)
@@ -228,36 +218,37 @@ def main(dataset_version, sst, emt, budget, the_type, sample_size, blocked_propo
                 failed_runs.to_csv(failed_runs_file, index=None)
                 
         if len(all_results) > 0:
+
             all_results_concat = pd.concat(all_results, axis=0)
             all_results_concat.to_csv(output_file, index=None)
             print(all_results_concat)
-        
+
+            all_bootstraped_results_concat = pd.concat(all_bootstrapped_results, axis=0)
+            all_bootstraped_results_concat.to_csv(output_file.replace('result', 'bootstrapped_result'), index=None)
+
+    return 
                     
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_version')
     parser.add_argument('--ss_train')
     parser.add_argument('--em_train')
     parser.add_argument('--budget')
     parser.add_argument('--type')
     parser.add_argument('--sample_size')
     parser.add_argument('--iteration')
-    parser.add_argument('--blocked_proportion')
     parser.add_argument('--dataset_dir')
     parser.add_argument('--output_file')
     parser.add_argument('--output_dir')
     parser.add_argument('--failed_runs_file')
     args = parser.parse_args()
 
-    main(args.dataset_version,
-         args.ss_train,
+    main(args.ss_train,
          args.em_train,
          args.budget,
          args.type,
          args.sample_size,
-         args.blocked_proportion,
          args.iteration,
          args.dataset_dir,
          args.output_file,

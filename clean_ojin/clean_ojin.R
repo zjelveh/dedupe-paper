@@ -3,7 +3,6 @@ library(optparse)
 library(data.table)
 library(stringr)
 library(lubridate)
-library(stringdist)
 options(scipen = 999)
 
 

@@ -1,5 +1,14 @@
+import pandas as pd
+import dedupe
+from dedupe.core import unique
+import sys
 
-
+# this is a modified version of dedupe's console_label function. two changes:
+#    1. instead of labeling until the user decides to stop, we label according to a 
+#       budget. if the budget is 20, we'll label 20 pairs and then stop labeling. 
+#    2. we can take advantage of the fact that we have ground truth person ids (sid) 
+#       to automate the labeling that normally has to be done by a human. when dedupe
+#       asks if two record match, we simple return y if they have the same sid and n otherwise.
 def console_label_with_budget(deduper: dedupe.api.ActiveMatching, budget=0, verbose=False) -> None:  # pragma: no cover
     '''
    Train a matcher instance (Dedupe, RecordLink, or Gazetteer) from the command line.
@@ -35,10 +44,10 @@ def console_label_with_budget(deduper: dedupe.api.ActiveMatching, budget=0, verb
 
             record_pair = uncertain_pairs.pop()
             if verbose:
-                logger.info(f"{record_pair[0]['first_name']} {record_pair[0]['last_name']} {record_pair[0]['date_of_birth']} <==> {record_pair[1]['first_name']} {record_pair[1]['last_name']} {record_pair[1]['date_of_birth']}")
+                print(f"{record_pair[0]['first_name']} {record_pair[0]['last_name']} {record_pair[0]['date_of_birth']} <==> {record_pair[1]['first_name']} {record_pair[1]['last_name']} {record_pair[1]['date_of_birth']}")
             uncertainties = uncertainties.pop()
         except IndexError:
-            logger.info("COULD NOT GET ANY MORE UNCERTAIN PAIRS.")
+            print("COULD NOT GET ANY MORE UNCERTAIN PAIRS.")
             break
 
         # Automatically return the correct label
@@ -75,7 +84,7 @@ def console_label_with_budget(deduper: dedupe.api.ActiveMatching, budget=0, verb
             examples_buffer.insert(0, (record_pair, 'distinct'))
 
         if budget == 0:
-            print('Finished labeling', file=sys.stderr)
+            print('finished labeling', file=sys.stderr)
 
         if len(examples_buffer) > buffer_len:
             record_pair, label = examples_buffer.pop()

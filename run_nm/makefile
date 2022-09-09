@@ -3,11 +3,11 @@ PROJECT_DIR := $(CURRENT_DIR)/..
 
 task ?= ojin
 
-dataset_dir := $(PROJECT_DIR)/generate_datasets/all_output/low_br/$(task)
+dataset_dir := $(PROJECT_DIR)/generate_datasets/output/$(task)
 config_template_file := $(CURRENT_DIR)/config_template.yaml
 
-ojin_n_grid := 5000 200000 50000
-iter_grid := 0
+ojin_n_grid := 5000 50000 200000
+iter_grid := 0 1 2 3 4 5 6 7 8 9
 
 n_grid := $($(task)_n_grid)
 share_exact_grid := 50
@@ -42,8 +42,7 @@ endef
 $(foreach training_share_exact,$(share_exact_grid),\
 	$(foreach iter,$(iter_grid),\
 		$(foreach training_n,$(n_grid),\
-			$(foreach eval_share_exact,$(share_exact_grid),\
-				$(eval $(call prep_and_run_nm,$(training_n),$(training_share_exact),$(training_n),$(eval_share_exact),$(iter)))))))
+			$(eval $(call prep_and_run_nm,$(training_n),$(training_share_exact),$(training_n),$(training_share_exact),$(iter))))))
 
 $(result_file): generate_result_file.py $(output_dir)/spec__5000_50_5000_50_0/output/experiment_with_clusterid.csv
 	python generate_result_file.py \
@@ -59,5 +58,3 @@ result_file: $(result_file)
 
 clean:
 	- rm -rf $(output_dir)
-
-

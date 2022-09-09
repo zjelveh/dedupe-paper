@@ -1,0 +1,15 @@
+name: dedupe_paper_py
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python>=3.7
+  - seaborn
+  - unidecode
+  - pip
+  - pip:
+    - cffi
+    - openpyxl
+    - xlsxwriter
+    - -e git+https://github.com/mmcneill/dedupe-fork.git@dedupe-paper#egg=dedupe
+    - git+ssh://git@urbangitlab.uchicago.edu/namematch/name_match.git@v1.1.0

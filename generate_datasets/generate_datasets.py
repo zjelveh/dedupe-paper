@@ -19,7 +19,7 @@ def preprocess_data(df, col_with_lineage):
     # extract lineage and clean middle name/initial
     df['middle_name'] = df.middle_name.str.extract('([A-Za-z ]+)')
     df['lineage'] = df[col_with_lineage].str.extract(' (JR|SR|II|III|IV|V)$')
-    df['middle_name'] = df[col_with_lineage].str.replace(' (JR|SR|II|III|IV|V)$', '').str.strip()
+    df['middle_name'] = df[col_with_lineage].str.replace(' (JR|SR|II|III|IV|V)$', '', regex=True).str.strip()
     df['middle_initial'] = df.middle_name.str.slice(0, 1)
     
     # get rid of very very low count U and D categories
